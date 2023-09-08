@@ -1,13 +1,27 @@
-CONFIG_ID=KODAK_1x_epochs25000_lr0.0005_ffdims_16_hdims32_hlayer3_nerf_sine_l1_reg1e-05_enc_scale1.4
-EXP_ROOT=exp/basic_kodak/$CONFIG_ID
-IMG_ID=kodim01
-OUT_FOLDER=results/kodak/$CONFIG_ID/$IMG_ID
+for experiment_id in "basic_celeba" "maml_celeba"
+do
+    for config_path in exp/$experiment_id/*
+    do
+        config_id=$(basename $config_path)
+        for image_path in data/CelebA100/*.png
+        do
+            image_name=$(basename $image_path)
+            image_id=${image_name%.png}
+            ./extract_stats.sh $experiment_id $config_id $image_id CelebA100
+        done
+    done
+done
 
-mkdir -p $OUT_FOLDER
-
-python3 image_compression/test.py \
-    --image_path data/KODAK/$IMG_ID.png \
-    --flags_file $EXP_ROOT/FLAGS.yml \
-    --exp_folder $EXP_ROOT/$IMG_ID/ \
-    --bitwidth 8 \
-    --out_folder $OUT_FOLDER
+for experiment_id in "maml_kodak"
+do
+    for config_path in exp/$experiment_id/*
+    do
+        config_id=$(basename $config_path)
+        for image_path in data/KODAK/*.png
+        do
+            image_name=$(basename $image_path)
+            image_id=${image_name%.png}
+            ./extract_stats.sh $experiment_id $config_id $image_id KODAK
+        done
+    done
+done

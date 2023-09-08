@@ -1,6 +1,7 @@
 import json
 import glob
 import os
+from skimage import io
 
 from pytorch_msssim import ms_ssim, ssim
 
@@ -53,7 +54,7 @@ def calculate_metrics(original, reconstructed, yaml_stats):
     return {
         "psnr": psnr(original, reconstructed).item(),
         "ssim": ssim(ms_ssim_reshape(original), ms_ssim_reshape(reconstructed)).item(),
-        "ms_ssim": ms_ssim(ms_ssim_reshape(original), ms_ssim_reshape(reconstructed)).item(),
+        "ms-ssim": ms_ssim(ms_ssim_reshape(original), ms_ssim_reshape(reconstructed)).item(),
         "state_bpp": yaml_stats["bpp"],
         "bpp": yaml_stats["bpp"],
     }
@@ -90,11 +91,13 @@ def main(_):
     yaml_stats_path = glob.glob(os.path.join(FLAGS.exp_folder, yaml_stats_glob))[0]
     yaml_stats = yaml.safe_load(open(yaml_stats_path, "r"))
 
-    stats_path = os.path.join(FLAGS.out_folder, "stats.json")
     stats = calculate_metrics(original, reconstructed, yaml_stats)
 
     print(stats)
-    json.dump(stats, open(stats_path, "w"))
+    json.dump(stats, open(os.path.join(FLAGS.out_folder, "stats.json"), "w"))
+
+    io.imsave(os.path.join(FLAGS.out_folder, "decoded.png"), 
+              reconstructed.to(torch.uint8).permute(1, 2, 0).cpu().numpy())
 
 if __name__ == '__main__':
     app.run(main)
