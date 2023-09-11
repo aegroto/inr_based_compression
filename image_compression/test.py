@@ -49,8 +49,6 @@ def ms_ssim_reshape(tensor):
     return tensor.unsqueeze(0)
 
 def calculate_metrics(original, reconstructed, yaml_stats):
-    pixels = original.nelement() / 3.0
-
     return {
         "psnr": psnr(original, reconstructed).item(),
         "ssim": ssim(ms_ssim_reshape(original), ms_ssim_reshape(reconstructed)).item(),
@@ -63,6 +61,14 @@ def main(_):
     TRAINING_FLAGS = yaml.safe_load(open(FLAGS.flags_file, 'r'))
 
     img = dataio.ImageFile(FLAGS.image_path)
+    flip = \
+        img.img.size[1] > img.img.size[0] and \
+        'maml_epochs' in TRAINING_FLAGS and \
+            TRAINING_FLAGS['dataset'] == 'KODAK'
+
+    if flip:
+        img.img = img.img.rotate(90, expand=1)
+
     image_resolution = (img.img.size[1], img.img.size[0])
 
     model = modules.INRNet(type=TRAINING_FLAGS['activation'], mode=TRAINING_FLAGS['encoding'],
@@ -86,6 +92,10 @@ def main(_):
     model = model.to(device)
 
     original, reconstructed = infer(dataloader, model, image_resolution)
+
+    if flip:
+        original = torch.rot90(original, k=3, dims=[1, 2])
+        reconstructed = torch.rot90(reconstructed, k=3, dims=[1, 2])
 
     yaml_stats_glob = f"*metrics_arithmetic_bw{FLAGS.bitwidth}*"
     yaml_stats_path = glob.glob(os.path.join(FLAGS.exp_folder, yaml_stats_glob))[0]
